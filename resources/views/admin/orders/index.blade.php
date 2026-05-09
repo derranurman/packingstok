@@ -3,9 +3,7 @@
 @section('content')
 <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
     <h1 class="text-2xl font-bold">Order</h1>
-    <form method="POST" action="{{ route('admin.orders.sync') }}">@csrf
-        <button class="bg-emerald-600 hover:bg-emerald-700 text-white rounded px-4 py-2">Sync dari TikTok</button>
-    </form>
+    <a href="{{ route('admin.orders.import.form') }}" class="bg-emerald-600 hover:bg-emerald-700 text-white rounded px-4 py-2">+ Import dari TikTok</a>
 </div>
 
 <form class="mb-4 flex gap-2 flex-wrap">
@@ -54,7 +52,7 @@
                     <td class="px-4 py-2">{{ $o->packedBy?->name ?? '-' }}</td>
                 </tr>
             @empty
-                <tr><td colspan="7" class="px-4 py-6 text-center text-slate-500">Belum ada order. Klik "Sync dari TikTok".</td></tr>
+                <tr><td colspan="7" class="px-4 py-6 text-center text-slate-500">Belum ada order. Klik "Import dari TikTok".</td></tr>
             @endforelse
         </tbody>
     </table>
