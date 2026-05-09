@@ -4,7 +4,8 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Order;
-use App\Services\OrderSyncService;
+use App\Models\OrderImport;
+use App\Services\OrderImportService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -37,10 +38,38 @@ class OrderController extends Controller
         return view('admin.orders.show', compact('order'));
     }
 
-    public function syncNow(OrderSyncService $sync): RedirectResponse
+    public function importForm(): View
     {
-        $result = $sync->sync();
-        return redirect()->route('admin.orders.index')
-            ->with('success', "Sync selesai: fetched {$result['fetched']}, baru {$result['created']}, update {$result['updated']}.");
+        $recentImports = OrderImport::with('user')
+            ->latest()
+            ->limit(10)
+            ->get();
+
+        return view('admin.orders.import', compact('recentImports'));
+    }
+
+    public function import(Request $request, OrderImportService $service): RedirectResponse
+    {
+        $request->validate([
+            'file' => ['required', 'file', 'mimes:csv,txt,xlsx,xls', 'max:20480'],
+        ]);
+
+        $uploaded = $request->file('file');
+        try {
+            $result = $service->import(
+                $uploaded->getRealPath(),
+                $uploaded->getClientOriginalName(),
+                $request->user()
+            );
+        } catch (\Throwable $e) {
+            return back()->withErrors(['file' => 'Gagal import: '.$e->getMessage()]);
+        }
+
+        $msg = "Import selesai. Baris terbaca {$result['rows']}, order baru {$result['created']}, diperbarui {$result['updated']}, dilewati {$result['skipped']}.";
+        if (!empty($result['warnings'])) {
+            $msg .= ' Ada '.count($result['warnings']).' peringatan, cek riwayat import.';
+        }
+
+        return redirect()->route('admin.orders.import.form')->with('success', $msg);
     }
 }

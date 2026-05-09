@@ -3,10 +3,10 @@
 ## Tech Stack
 - **Framework:** Laravel 11 (PHP 8.2+)
 - **DB:** SQLite (default untuk laptop), bisa switch MySQL via `.env`
-- **Frontend:** Blade + Tailwind CSS + Alpine.js (ringan, tanpa build complex)
+- **Frontend:** Blade + Tailwind CSS (CDN) + Alpine.js — ringan, tanpa build step
 - **Scan barcode (kamera):** `html5-qrcode` (CDN)
+- **Parse Excel:** `phpoffice/phpspreadsheet`
 - **Auth:** Laravel built-in (session-based) + middleware `role`
-- **TikTok API client:** Service class custom `App\Services\TikTokShopClient`
 
 ## Database Schema
 
@@ -16,8 +16,9 @@
 | id | pk | |
 | name | string | |
 | email | string unique | |
-| password | string | |
+| password | string (hashed) | |
 | role | enum('admin','packer') | default 'packer' |
+| is_active | bool default true | |
 | timestamps | | |
 
 ### products
@@ -29,6 +30,7 @@
 | description | text nullable | |
 | price | decimal(12,2) default 0 | |
 | stock | integer default 0 | |
+| low_stock_threshold | integer default 5 | |
 | photo_path | string nullable | |
 | is_active | bool default true | |
 | timestamps | | |
@@ -43,7 +45,7 @@
 | buyer_name | string nullable | |
 | status | enum('pending','ready_to_pack','packed','cancelled') | |
 | total_amount | decimal(12,2) default 0 | |
-| raw_payload | json | mentah dari TikTok, untuk debug |
+| raw_payload | json | data mentah dari CSV untuk debug |
 | packed_at | datetime nullable | |
 | packed_by_user_id | fk users nullable | |
 | timestamps | | |
@@ -73,80 +75,79 @@
 | user_id | fk users nullable | |
 | timestamps | | |
 
-### tiktok_credentials (singleton)
+### order_imports
 | col | type | note |
 |---|---|---|
 | id | pk | |
-| app_key | string | |
-| app_secret | string encrypted | |
-| shop_cipher | string | |
-| access_token | string encrypted | |
-| refresh_token | string encrypted | |
-| token_expires_at | datetime | |
-| last_polled_at | datetime nullable | |
-| mode | enum('live','mock') default 'mock' | |
+| user_id | fk users | |
+| filename | string | |
+| rows_read | uint | |
+| orders_created | uint | |
+| orders_updated | uint | |
+| rows_skipped | uint | |
+| warnings | json nullable | list pesan peringatan per row |
 | timestamps | | |
 
 ## Komponen
 
 ### Services
-- `App\Services\TikTokShopClient` — signed HTTP request ke TikTok Open API. Method: `getOrders(sinceTs)`, `refreshToken()`, `getOrderDetail(id)`.
-- `App\Services\OrderSyncService` — ambil order dari client, simpan ke DB, map SKU ke products.
-- `App\Services\PackingService` — handle scan resi: validasi → kurangi stok → catat movement → update order. Semua dalam 1 DB transaction.
-
-### Artisan Commands
-- `tiktok:poll` — panggil `OrderSyncService::sync()`. Dijadwalkan di `routes/console.php` atau `app/Console/Kernel.php` tiap menit.
+- **`App\Services\OrderImportService`** — parse CSV/XLSX, normalize header, group rows by order_id, upsert ke `orders` + `order_items`. Auto-match SKU. Skip order yang sudah dipacking dan status yang tidak packable.
+- **`App\Services\PackingService`** — handle scan resi: validasi → kurangi stok → catat movement → update order. Semua dalam 1 DB transaction dengan `lockForUpdate()`.
 
 ### Middleware
-- `role:admin` dan `role:packer` (atau `role:admin,packer`).
+- `role:admin` dan `role:admin,packer`.
 
 ### Routes (ringkas)
 ```
-GET  /login                        auth view
+GET  /login                         auth view
 POST /login
 POST /logout
 
 # Admin
-GET  /admin                        dashboard
-RES  /admin/products               CRUD
-RES  /admin/users                  CRUD
-GET  /admin/orders                 list + filter
-GET  /admin/orders/{id}            detail
-POST /admin/orders/sync-now        tombol manual trigger
-GET  /admin/mappings               daftar unmapped items
-POST /admin/mappings/{item}        assign product_id
-GET  /admin/tiktok                 form kredensial
-POST /admin/tiktok                 save
+GET  /admin                         dashboard
+RES  /admin/products                CRUD (kecuali show)
+RES  /admin/users                   CRUD (kecuali show)
+GET  /admin/orders                  list + filter
+GET  /admin/orders/import           form upload
+POST /admin/orders/import           proses upload
+GET  /admin/orders/{order}          detail
+GET  /admin/mappings                daftar unmapped items
+POST /admin/mappings/{item}         assign product_id
 
 # Packer
-GET  /packing                      halaman scan
-POST /packing/scan                 {tracking_number} -> JSON response
-GET  /packing/history              history scan saya
+GET  /packing                       halaman scan
+POST /packing/scan                  {tracking_number} -> JSON response
 ```
 
 ### Scan Flow (Packing)
 1. Packer buka `/packing`.
 2. Input field `tracking_number` auto-focus, listen keydown `Enter`.
 3. Tombol "Scan pakai kamera" buka modal `html5-qrcode`, hasil scan diisi ke input dan submit.
-4. POST ke `/packing/scan` (AJAX) → return JSON `{success, order, items, warnings[]}`.
-5. UI tampilkan card hasil: produk + qty yang dikurangi, stok sekarang.
+4. POST ke `/packing/scan` (AJAX) → return JSON `{success, order, changes[], warnings[]}`.
+5. UI tampilkan card hasil + beep sound (success 880Hz, error 220Hz).
 
-### TikTok Polling Flow
-1. Command `tiktok:poll` jalan tiap menit via scheduler.
-2. Cek `mode` dari `tiktok_credentials`:
-   - `mock` → baca `storage/app/tiktok/mock_orders.json`
-   - `live` → call TikTok Open API `/order/202309/orders/search` dengan filter `update_time_ge = last_polled_at`
-3. Untuk tiap order: upsert ke `orders`, upsert items ke `order_items`, auto-match product berdasarkan `tiktok_sku == products.sku`.
-4. Update `last_polled_at`.
+### Import Flow
+1. Admin export order di TikTok Seller Center → dapat file CSV/XLSX.
+2. Buka `/admin/orders/import` → upload file.
+3. Parser:
+   - Baca semua row, normalize header ke lowercase.
+   - Map header ke field internal lewat `HEADER_ALIASES`.
+   - Validate kolom wajib (`order_id`, `tracking_number`, `quantity`).
+   - Filter row berdasarkan status packable.
+   - Group by `order_id` (1 order bisa punya banyak item).
+   - Upsert order + replace items (kecuali order yang sudah di-`packed`).
+   - Auto-match SKU ke `products.sku`.
+4. Catat di `order_imports` dengan stats dan warnings.
+5. Redirect back dengan flash message.
 
 ## Keamanan
-- Password hashed (bcrypt default Laravel).
-- Token TikTok di-encrypt via `Crypt::encryptString` sebelum disimpan.
+- Password hashed via cast `hashed`.
 - CSRF aktif di semua form.
-- Role check via middleware, bukan di view.
-- Rate limit login 5/menit.
+- Role check via middleware.
+- Rate limit login 10/menit.
+- Upload file: validate mime types (`csv,txt,xlsx,xls`), max 20 MB.
 
 ## Skalabilitas Catatan
-- 100 produk + 100 order/hari = ringan banget. SQLite cukup.
-- Polling tiap menit → 1440 call/hari. Aman dari rate limit TikTok.
-- Nanti kalau mau realtime, tinggal tambah endpoint webhook `/api/tiktok/webhook` + Cloudflare Tunnel.
+- 100 produk + 100 order/hari = sangat ringan. SQLite cukup.
+- PhpSpreadsheet bisa handle ribuan row — untuk 100 order/hari tidak masalah.
+- Kalau nanti mau auto-import tanpa upload manual, tinggal tambah folder "dropbox" (watch folder) + artisan command scheduled.

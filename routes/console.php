@@ -1,6 +1,3 @@
 <?php
 
-use Illuminate\Support\Facades\Schedule;
-
-// Jalankan polling TikTok tiap menit (saat mode=live)
-Schedule::command('tiktok:poll')->everyMinute()->withoutOverlapping();
+// Tidak ada scheduled task — order masuk via upload CSV/Excel oleh admin.

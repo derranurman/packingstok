@@ -3,7 +3,6 @@
 namespace Database\Seeders;
 
 use App\Models\Product;
-use App\Models\TiktokCredential;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
@@ -33,7 +32,7 @@ class DatabaseSeeder extends Seeder
             ]
         );
 
-        // Produk contoh — SKU harus match dengan mock_orders.json supaya langsung ke-mapping
+        // Produk contoh — SKU harus match dengan sample_tiktok_orders.csv supaya langsung ke-mapping
         $products = [
             ['sku' => 'SKU-STIR-SKEL', 'name' => 'Stir Skeleton', 'price' => 125000, 'stock' => 50, 'description' => 'Stir motor custom skeleton'],
             ['sku' => 'SKU-HELM-RETRO', 'name' => 'Helm Retro Half Face', 'price' => 185000, 'stock' => 20, 'description' => 'Helm retro half face SNI'],
@@ -46,11 +45,9 @@ class DatabaseSeeder extends Seeder
             Product::updateOrCreate(['sku' => $p['sku']], $p + ['is_active' => true, 'low_stock_threshold' => 10]);
         }
 
-        // Init TikTok credential singleton (mode mock)
-        TiktokCredential::firstOrCreate([], ['mode' => 'mock']);
-
         $this->command->info('Seed selesai.');
-        $this->command->info('  Admin  → admin@toko.test / admin123');
-        $this->command->info('  Packer → packer@toko.test / packer123');
+        $this->command->info('  Admin  -> admin@toko.test / admin123');
+        $this->command->info('  Packer -> packer@toko.test / packer123');
+        $this->command->info('Sample CSV ada di storage/app/sample/sample_tiktok_orders.csv');
     }
 }

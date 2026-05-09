@@ -17,10 +17,10 @@
             @if(auth()->user()->isAdmin())
                 <a href="{{ route('admin.dashboard') }}" class="text-sm hover:text-emerald-700 {{ request()->routeIs('admin.dashboard') ? 'text-emerald-700 font-semibold' : '' }}">Dashboard</a>
                 <a href="{{ route('admin.products.index') }}" class="text-sm hover:text-emerald-700 {{ request()->routeIs('admin.products.*') ? 'text-emerald-700 font-semibold' : '' }}">Produk</a>
-                <a href="{{ route('admin.orders.index') }}" class="text-sm hover:text-emerald-700 {{ request()->routeIs('admin.orders.*') ? 'text-emerald-700 font-semibold' : '' }}">Order</a>
+                <a href="{{ route('admin.orders.index') }}" class="text-sm hover:text-emerald-700 {{ request()->routeIs('admin.orders.index') || request()->routeIs('admin.orders.show') ? 'text-emerald-700 font-semibold' : '' }}">Order</a>
+                <a href="{{ route('admin.orders.import.form') }}" class="text-sm hover:text-emerald-700 {{ request()->routeIs('admin.orders.import*') ? 'text-emerald-700 font-semibold' : '' }}">Import TikTok</a>
                 <a href="{{ route('admin.mappings.index') }}" class="text-sm hover:text-emerald-700 {{ request()->routeIs('admin.mappings.*') ? 'text-emerald-700 font-semibold' : '' }}">Mapping SKU</a>
                 <a href="{{ route('admin.users.index') }}" class="text-sm hover:text-emerald-700 {{ request()->routeIs('admin.users.*') ? 'text-emerald-700 font-semibold' : '' }}">User</a>
-                <a href="{{ route('admin.tiktok.edit') }}" class="text-sm hover:text-emerald-700 {{ request()->routeIs('admin.tiktok.*') ? 'text-emerald-700 font-semibold' : '' }}">TikTok</a>
             @endif
             <a href="{{ route('packing.index') }}" class="text-sm hover:text-emerald-700 {{ request()->routeIs('packing.*') ? 'text-emerald-700 font-semibold' : '' }}">Scan Packing</a>
             <div class="ml-auto flex items-center gap-3 text-sm">
