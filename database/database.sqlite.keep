@@ -1,0 +1,1 @@
+placeholder so the database/ folder exists. File SQLite asli dibuat dengan `touch database/database.sqlite` saat setup.
