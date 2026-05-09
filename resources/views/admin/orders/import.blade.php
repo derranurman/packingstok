@@ -4,6 +4,10 @@
 <a href="{{ route('admin.orders.index') }}" class="text-slate-500 hover:underline">&larr; Kembali ke Order</a>
 <h1 class="text-2xl font-bold mb-4">Import Order dari TikTok</h1>
 
+<div class="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900">
+    <strong>Tips:</strong> Mau lebih cepat? Pakai <a href="{{ route('admin.watchfolder.index') }}" class="underline font-semibold">Watch Folder</a> &mdash; tinggal drop file CSV/XLSX ke folder khusus, sistem auto-import tiap 2 menit tanpa perlu buka web ini.
+</div>
+
 <div class="grid md:grid-cols-3 gap-6">
     <div class="md:col-span-2 bg-white rounded-xl border p-5">
         <form method="POST" action="{{ route('admin.orders.import') }}" enctype="multipart/form-data">
