@@ -13,6 +13,7 @@ class OrderImport extends Model
     protected $fillable = [
         'user_id',
         'filename',
+        'source',
         'rows_read',
         'orders_created',
         'orders_updated',

@@ -16,13 +16,14 @@
 - [x] Sample CSV untuk testing
 - [x] README dengan cara install, cara export dari TikTok, cara test
 
-## Fase 2 — Quality of Life
-- [ ] Cetak label packing PDF (ukuran 10×15 cm thermal)
+## Fase 2 — Automation &amp; Quality of Life
+- [x] Auto watch folder: drop CSV/XLSX ke folder inbox, otomatis di-import (scheduled command `imports:watch`)
+- [x] Support Google Drive / Dropbox: tinggal arahkan `WATCH_FOLDER_INBOX` ke folder cloud yg di-sync
+- [ ] Cetak label packing PDF (ukuran 10&times;15 cm thermal)
 - [ ] Laporan: export stok keluar per periode ke Excel
 - [ ] Notifikasi stok menipis ke WhatsApp (Fonnte/Wablas)
 - [ ] Dashboard grafik packing 7/30 hari
 - [ ] Bulk upload foto produk
-- [ ] Watch folder: otomatis parse file yang di-drop ke folder tertentu
 
 ## Fase 3 — Data Integrity
 - [ ] Retur / pembatalan order (reverse stock)

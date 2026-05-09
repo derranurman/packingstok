@@ -10,8 +10,9 @@ return new class extends Migration
     {
         Schema::create('order_imports', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('user_id')->nullable()->constrained()->nullOnDelete();
             $table->string('filename');
+            $table->string('source', 30)->default('upload'); // 'upload' | 'watch_folder'
             $table->unsignedInteger('rows_read')->default(0);
             $table->unsignedInteger('orders_created')->default(0);
             $table->unsignedInteger('orders_updated')->default(0);

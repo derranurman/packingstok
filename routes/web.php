@@ -5,6 +5,7 @@ use App\Http\Controllers\Admin\MappingController;
 use App\Http\Controllers\Admin\OrderController;
 use App\Http\Controllers\Admin\ProductController;
 use App\Http\Controllers\Admin\UserController;
+use App\Http\Controllers\Admin\WatchFolderController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Packing\PackingController;
 use Illuminate\Support\Facades\Route;
@@ -38,6 +39,9 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
 
     Route::get('mappings', [MappingController::class, 'index'])->name('mappings.index');
     Route::post('mappings/{item}', [MappingController::class, 'update'])->name('mappings.update');
+
+    Route::get('watch-folder', [WatchFolderController::class, 'index'])->name('watchfolder.index');
+    Route::post('watch-folder/run', [WatchFolderController::class, 'runNow'])->name('watchfolder.run');
 
     Route::resource('users', UserController::class)->except(['show']);
 });

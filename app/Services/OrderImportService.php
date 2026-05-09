@@ -62,9 +62,10 @@ class OrderImportService
     ];
 
     /**
+     * @param User|null $user Null untuk import otomatis (watch folder)
      * @return array{import: OrderImport, created:int, updated:int, skipped:int, rows:int, warnings:array}
      */
-    public function import(string $absolutePath, string $originalName, User $user): array
+    public function import(string $absolutePath, string $originalName, ?User $user, string $source = 'upload'): array
     {
         $rows = $this->readRows($absolutePath);
         if (empty($rows)) {
@@ -169,8 +170,9 @@ class OrderImportService
         }
 
         $import = OrderImport::create([
-            'user_id' => $user->id,
+            'user_id' => $user?->id,
             'filename' => $originalName,
+            'source' => $source,
             'rows_read' => $rowsRead,
             'orders_created' => $created,
             'orders_updated' => $updated,
